@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Запам’ятай і знайди всі пари монет за 2 секунди</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('my-background.png') center center no-repeat;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-top: 20px;
+      color: #00AABF;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .timer {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #EF4C8C;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background-color: #0284a8;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background-color: #02627a;
+    }
+
+    /* Адаптивний контейнер */
+    .game-container {
+      display: flex;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 1000px;
+      margin: 20px auto 0;
+      padding: 0 10px;
+      box-sizing: border-box;
+      justify-content: center;
+    }
+
+    /* Адаптивні картки */
+    .card {
+      position: relative;
+      width: calc(25% - 20px);
+      aspect-ratio: 210 / 280;
+      margin: 10px;
+      perspective: 1000px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front,
+    .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+      backface-visibility: hidden;
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .card-front {
+      transform: rotateY(180deg);
+      background-color: #fff;
+    }
+    .card-back {
+      background-color: #000;
+      background-image: url('touche-logo-placeholder.png');
+    }
+
+    /* Вертикальне портретне положення (iPad, телефони) */
+    @media (max-width: 768px) {
+      .card {
+        width: calc(50% - 20px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Запам’ятай і знайди всі пари монет за 2 секунди</h1>
+
+  <div class="controls">
+    <button id="startBtn" class="btn">Розпочати гру</button>
+    <div class="timer" id="timerDisplay">Попередній показ</div>
+  </div>
+
+  <div class="game-container" id="gameBoard"></div>
+
+  <script>
+    const cryptoLogos = [
+      { name: 'bitcoin',  img: 'bitcoin-placeholder.png' },
+      { name: 'ethereum', img: 'ethereum-placeholder.png' },
+      { name: 'doge',     img: 'doge-placeholder.png' },
+      { name: 'bnb',      img: 'bnb-placeholder.png' }
+    ];
+
+    const previewTime = 2.5;
+    const playTime = 8;
+    let timeLeft = playTime;
+    let timerInterval;
+    let lockBoard = false;
+    let firstCard, secondCard;
+    let matchesFound = 0;
+    let gameRunning = false;
+
+    const timerDisplay = document.getElementById('timerDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const gameBoard = document.getElementById('gameBoard');
+
+    startBtn.addEventListener('click', startGame);
+
+    function startGame() {
+      if (gameRunning) return;
+      gameRunning = true;
+      clearInterval(timerInterval);
+      matchesFound = 0;
+      lockBoard = true;
+      gameBoard.innerHTML = '';
+      timerDisplay.textContent = `Попередній показ: ${Math.floor(previewTime)} сек`;
+
+      const cards = cryptoLogos.flatMap(c => [c, { ...c }]);
+      shuffleArray(cards);
+
+      cards.forEach(({ name, img }) => {
+        const card = createCardElement(name, img);
+        gameBoard.appendChild(card);
+        card.classList.add('flipped');
+      });
+
+      setTimeout(() => {
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
+        lockBoard = false;
+        startPlayTimer();
+      }, previewTime * 1000);
+    }
+
+    function startPlayTimer() {
+      timeLeft = playTime;
+      timerDisplay.textContent = `Час: ${timeLeft}`;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = `Час: ${timeLeft}`;
+        if (timeLeft <= 0) endGame(false);
+      }, 1000);
+    }
+
+    function endGame(isWin) {
+      clearInterval(timerInterval);
+      lockBoard = true;
+      setTimeout(() => {
+        alert(isWin ? 'Вітаємо! Ти знайшов всі пари!' : 'Margin call: Час вичерпано');
+        gameRunning = false;
+      }, 500);
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    function createCardElement(name, imgPath) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.name = name;
+      const inner = document.createElement('div');
+      inner.className = 'card-inner';
+      const front = document.createElement('div');
+      front.className = 'card-front';
+      front.style.backgroundImage = `url('${imgPath}')`;
+      const back = document.createElement('div');
+      back.className = 'card-back';
+      inner.append(front, back);
+      card.appendChild(inner);
+      card.addEventListener('click', flipCard);
+      return card;
+    }
+
+    function flipCard() {
+      if (lockBoard || this === firstCard) return;
+      this.classList.add('flipped');
+      if (!firstCard) { firstCard = this; return; }
+      secondCard = this;
+      checkForMatch();
+    }
+
+    function checkForMatch() {
+      const match = firstCard.dataset.name === secondCard.dataset.name;
+      match ? disableCards() : unflipCards();
+      if (match) {
+        matchesFound++;
+        if (matchesFound === cryptoLogos.length) endGame(true);
+      }
+    }
+
+    function disableCards() {
+      firstCard.removeEventListener('click', flipCard);
+      secondCard.removeEventListener('click', flipCard);
+      resetSelection();
+    }
+
+    function unflipCards() {
+      lockBoard = true;
+      setTimeout(() => {
+        firstCard.classList.remove('flipped');
+        secondCard.classList.remove('flipped');
+        resetSelection();
+      }, 1000);
+    }
+
+    function resetSelection() {
+      [firstCard, secondCard] = [null, null];
+      lockBoard = false;
+    }
+  </script>
+</body>
+</html>
